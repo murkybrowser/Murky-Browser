@@ -1,0 +1,40 @@
+:root{--bg:#0A1412;--surface:#10201D;--surface2:#172B27;--border:rgba(255,255,255,.11);--text:#E7EFEC;--dim:#92A49F;--accent:#E3A857;--warn:#F2C14E;--danger:#E0654F;--ui:"Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;font-family:var(--ui);background:transparent;color:var(--text);overflow:hidden;-webkit-user-select:none;user-select:none}
+body{background:transparent;border:0;border-radius:12px;box-shadow:none;overflow:hidden;transform-origin:50% 0;opacity:0;transform:translateY(-7px) scale(.985)}
+body.open{animation:popIn .18s cubic-bezier(.2,.8,.2,1) forwards}
+body.close{animation:popOut .15s cubic-bezier(.4,0,1,1) forwards}
+@keyframes popIn{from{opacity:0;transform:translateY(-7px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes popOut{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(-5px) scale(.99)}}
+.shell{background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 98%,transparent),var(--bg));border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.listView[hidden]{display:none}
+.listView{display:flex;flex-direction:column}
+.listHead{height:44px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 13px;border-bottom:1px solid var(--border);background:color-mix(in srgb,var(--surface) 98%,transparent)}
+.headLeft{display:flex;align-items:center;gap:6px;min-width:0}
+.listTitle{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pin{width:27px;height:27px;border:0;border-radius:7px;background:transparent;color:var(--dim);display:grid;place-items:center;cursor:pointer;flex-shrink:0;transition:background .15s ease,color .15s ease,transform .12s ease}
+.pin:hover{background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--text)}
+.pin:active{transform:scale(.96)}
+.pin:focus-visible{outline:1px solid color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:-1px}
+.pin svg{width:15px;height:15px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.headLeft .pin{margin-left:-7px}
+.list{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.item{min-width:0;cursor:pointer;display:grid;grid-template-columns:18px 1fr 16px;gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:9px;transition:background .15s ease,color .15s ease,transform .12s ease,border-color .15s ease,opacity .18s ease}
+.item:hover:not(.static){background:color-mix(in srgb,var(--accent) 13%,var(--surface2));border-color:color-mix(in srgb,var(--accent) 38%,var(--border))}
+.item:active:not(.static):not(.disabled){transform:scale(.985)}
+.item:focus-visible{outline:1px solid color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:-1px}
+.item.static{cursor:default}
+.icon{width:18px;height:18px;display:grid;place-items:center;background:none;border:0;border-radius:0}
+.icon svg{width:16px;height:16px;color:var(--dim);transition:color .15s ease}
+.item:not(.static):hover .icon svg{color:var(--accent)}
+.name{font:650 11.5px/1.25 var(--ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.name.warn{color:var(--warn)}
+.meta{font-size:9.8px;color:var(--dim);margin-top:2px;line-height:1.25}
+.item .pin{width:16px;height:16px;border-radius:0;background:none;pointer-events:none}
+.item .pin svg{width:14px;height:14px}
+.item:not(.static):hover .pin{color:var(--accent)}
+.item.danger{border-color:color-mix(in srgb,var(--danger) 30%,var(--border))}
+.item.danger .name{color:var(--danger)}
+.item.danger:hover:not(.static){background:color-mix(in srgb,var(--danger) 13%,var(--surface2));border-color:color-mix(in srgb,var(--danger) 45%,var(--border))}
+.item.danger:hover .icon svg{color:var(--danger)}
+.item.danger.disabled{opacity:.4;pointer-events:none}

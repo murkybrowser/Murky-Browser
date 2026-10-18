@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>New Tab, Murky</title>
+<style>
+  :root {
+    --bg: #0A1412;
+    --surface: #10201D;
+    --surface-2: color-mix(in srgb, var(--surface) 100%, white 14%);
+    --border: color-mix(in srgb, var(--surface) 70%, white 22%);
+    --text: #E4EDE9;
+    --text-dim: #8FA69E;
+    --accent: #E3A857;
+    --greeting-color: #E4EDE9;
+    --ui-font: "Segoe UI", system-ui, -apple-system, sans-serif;
+    --mono-font: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  img { -webkit-user-drag: none; user-drag: none; user-select: none; -webkit-user-select: none; }
+  html, body {
+    margin: 0; height: 100%;
+    background: transparent;
+    color: var(--text);
+    font-family: var(--ui-font);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+    background-image: var(--murky-photo, none);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: var(--murky-photo-size, cover);
+  }
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: var(--murky-photo-overlay, transparent);
+  }
+  .wrap { width: 100%; max-width: 860px; padding: 32px; text-align: center; animation: fadeUp 0.35s ease both; background: transparent !important; box-shadow: none !important; }
+  body.murky-photo-active .search { background: var(--surface) !important; backdrop-filter: none; box-shadow: 0 20px 60px rgba(0,0,0,.28); }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .logo-ring {
+    position: relative;
+    width: 108px; height: 108px;
+    margin: 0 auto 22px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-ring img {
+    width: 62px; height: 62px; position: relative; z-index: 1;
+  }
+
+  h1 { font-size: 21px; font-weight: 600; margin: 0 0 26px; letter-spacing: 0.2px; color: var(--greeting-color); }
+
+  .center-search-wrap { position: relative; width: 390px; height: 54px; margin: 0 auto; z-index: 20; align-self: flex-start; }
+  form.search {
+    display: grid; grid-template-rows: 40px 0fr; align-items: stretch; gap: 0;
+    position: absolute; left: 0; top: 0;
+    width: 390px; min-width: 390px; max-width: 390px; flex: 0 0 390px;
+    height: 54px;
+    margin-left: 0; margin-right: 0; box-sizing: border-box;
+    background: var(--surface);
+    border: 1px solid var(--border); border-radius: 27px;
+    padding: 6px 8px 6px 22px; box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    overflow: visible;
+    transition: height .24s cubic-bezier(.16,1,.3,1), border-color .15s ease;
+  }
+  form.search:not(.has-ac) { grid-template-rows: 40px 0fr; }
+  form.search.has-ac { grid-template-rows: 40px 1fr; height: calc(54px + var(--ac-height, 0px)); border-radius: 27px; }
+  .center-search-row { display: flex; align-items: center; gap: 10px; height: 40px; min-height: 40px; flex: 0 0 40px; }
+  form.search:focus-within { border-color: var(--border); box-shadow: 0 20px 60px rgba(0,0,0,0.35); }
+  form.search svg { width: 18px; height: 18px; stroke: var(--text-dim); fill: none; stroke-width: 1.8; flex-shrink: 0; }
+  form.search input { flex: 1; border: none; outline: none; background: transparent; color: var(--text); font-family: var(--mono-font); font-size: 14.5px; padding: 10px 0; user-select: text; -webkit-user-select: text; min-width: 0; }
+  form.search input::placeholder { color: var(--text-dim); }
+  form.search .mic-btn { width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; flex: 0 0 30px; }
+  form.search .mic-btn:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+  form.search .mic-btn:active { transform: scale(0.95); }
+  form.search .mic-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+  form.search input::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); }
+  .center-suggestions-wrap { position: absolute; left: 50%; top: 40px; width: 390px; height: calc(100% - 40px); min-height: 0; overflow: visible; transform: translateX(-50%); }
+  .center-search-row { display: flex; align-items: center; gap: 10px; height: 40px; min-height: 40px; }
+  .center-suggestions { width: 390px; height: 100%; min-height: 0; overflow: hidden; padding: 6px 0 8px; transform: none; border: 0; background: transparent; text-align: left; display: flex; flex-direction: column; align-items: center; }
+  .center-suggestion { width: calc(100% - 12px); min-height: 42px; margin: 0 auto; border: 0; border-radius: 10px; background: transparent; color: var(--text); display: flex; align-items: center; gap: 12px; padding: 8px 12px; cursor: pointer; text-align: left; font: inherit; transition: background-color .16s ease-in-out, color .16s ease-in-out; }
+  .center-suggestion:hover, .center-suggestion.selected { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .center-suggestion svg { width: 17px; height: 17px; flex: 0 0 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; color: var(--text-dim); }
+  .center-suggestion-main { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+  .center-suggestion-delete { width: 24px; height: 24px; flex: 0 0 24px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: var(--text-dim); opacity: 0; transform: scale(.92); cursor: pointer; transition: background-color .18s ease-in-out,color .18s ease-in-out,opacity .18s ease-in-out,transform .18s ease-in-out; }
+  .center-suggestion:hover .center-suggestion-delete,.center-suggestion-delete:focus-visible { opacity: 1; transform: scale(1); }
+  .center-suggestion-delete:hover { background: color-mix(in srgb,var(--accent) 12%,transparent); color: var(--text); }
+  .center-suggestion.removing { background: color-mix(in srgb,#E0654F 18%,transparent); opacity: .35; transform: translateX(5px); }
+  .center-suggestion.removing .center-suggestion-delete { opacity: 1; color: #E0654F; transform: scale(1.05); }
+
+  .speech-backdrop {
+    position: fixed; inset: 0; z-index: 999;
+    background: rgba(0,0,0,.34);
+    backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+    opacity: 0;
+  }
+  .speech-backdrop[hidden] { display: none; }
+  .speech-backdrop.is-open { animation: speechBackdropIn .22s ease both; }
+  .speech-backdrop.is-closing { animation: speechBackdropOut .18s ease both; }
+
+  .speech-popup {
+    position: fixed; z-index: 1000;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(420px, calc(100vw - 40px)); min-height: 205px; box-sizing: border-box;
+    padding: 24px;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--surface) 94%, black);
+    box-shadow: 0 24px 80px rgba(0,0,0,.45);
+    opacity: 0; transform-origin: center;
+  }
+  .speech-popup.is-open { animation: speechPopupIn .22s cubic-bezier(.2,.8,.2,1) both; }
+  .speech-popup.is-closing { animation: speechPopupOut .18s ease both; }
+  .speech-popup[hidden] { display: none; }
+  .speech-close {
+    position: absolute; top: 10px; right: 10px;
+    width: 28px; height: 28px; padding: 0; border: 0; border-radius: 8px;
+    background: transparent; color: var(--accent);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: background .15s ease, color .15s ease, transform .15s ease;
+  }
+  .speech-close:hover { background: rgba(255,255,255,0.07); color: var(--text); }
+  .speech-close:active { transform: scale(.96); }
+  .speech-close svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+  .speech-controls { display: flex; align-items: center; justify-content: center; gap: 9px; margin-top: 18px; }
+  .speech-mic, .speech-confirm {
+    width: 76px; height: 76px; border-radius: 50%; border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: background .15s ease, color .15s ease, transform .15s ease, opacity .15s ease;
+  }
+  .speech-mic:hover, .speech-confirm:hover { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); }
+  .speech-mic:active, .speech-confirm:active { transform: scale(.96); }
+  .speech-confirm { width: 42px; height: 42px; border-radius: 12px; display: none; }
+  .speech-popup.finished .speech-confirm { display: flex; }
+  .speech-mic svg { width: 30px; height: 30px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .speech-waves { height: 30px; display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: -54px; pointer-events: none; }
+  .speech-wave { width: 3px; height: 8px; border-radius: 999px; background: var(--accent); transform-origin: center; opacity: 0; }
+  .speech-popup.listening .speech-mic svg { opacity: 0; }
+  .speech-popup.listening .speech-wave { opacity: 1; }
+  .speech-preview {
+    width: 100%; min-height: 38px; margin-top: 27px; color: var(--text-dim); font-size: 11.5px;
+    line-height: 1.45; text-align: center; overflow-wrap: anywhere;
+  }
+
+  @keyframes speechBackdropIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes speechBackdropOut { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes speechPopupIn { from { opacity: 0; transform: translate(-50%, calc(-50% + 6px)) scale(.985); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+  @keyframes speechPopupOut { from { opacity: 1; transform: translate(-50%, -50%) scale(1); } to { opacity: 0; transform: translate(-50%, calc(-50% + 4px)) scale(.985); } }
+
+  @keyframes speechTextRise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+
+
+</style>
+<style>
+button, .btn, .icon-btn, .nav-item, .settings-btn, .extension-action-btn, .extension-danger, .link-btn, .reset-btn, .rail-btn, .side-item, .text-btn, .pill-btn { transition-property: background, background-color, color, border-color, opacity, filter, transform; transition-duration: .16s; transition-timing-function: ease-in-out; }</style>
+  <script src="lucide.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo-ring"><img src="../assets/logo_amber.png" alt="Murky" draggable="false" /></div>
+    <h1 id="greeting">Where to, today?</h1>
+
+    <div class="center-search-wrap">
+    <form class="search" id="searchForm">
+      <div class="center-search-row">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search-icon lucide-search"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        <input id="searchInput" type="text" placeholder="" autocomplete="off" />
+        <button class="mic-btn" id="micBtn" type="button" aria-label="Voice search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic-icon lucide-mic"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg>
+        </button>
+      </div>
+      <div class="center-suggestions-wrap">
+        <div class="center-suggestions" id="centerSuggestions" hidden></div>
+      </div>
+    </form>
+    </div>
+
+  </div>
+
+  <div class="speech-backdrop" id="speechBackdrop" hidden></div>
+  <div class="speech-popup" id="speechPopup" hidden>
+    <button class="speech-close" id="speechClose" type="button" aria-label="Close voice search">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
+    <div class="speech-controls">
+      <button class="speech-mic" id="speechMic" type="button" aria-label="Start voice search">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic-icon lucide-mic"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg>
+      </button>
+      <button class="speech-confirm" id="speechConfirm" type="button" aria-label="Search voice result">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check" width="20" height="20"><path d="M20 6 9 17l-5-5"></path></svg>
+      </button>
+    </div>
+    <div class="speech-waves" aria-hidden="true"><span class="speech-wave"></span><span class="speech-wave"></span><span class="speech-wave"></span></div>
+    <div class="speech-preview" id="speechPreview">Tap the microphone to start</div>
+  </div>
+
+  <script>
+    const murkyTextScaleBases = new WeakMap();
+    let murkyTextScaleValue = 1;
+    function applyMurkyTextScale(scale=1){ murkyTextScaleValue=Number(scale)||1; for(const el of document.querySelectorAll("body * , body")){ let base=murkyTextScaleBases.get(el); const computed=parseFloat(getComputedStyle(el).fontSize); if(!Number.isFinite(base)){ base=Number.isFinite(computed)?computed/murkyTextScaleValue:null; if(base!=null) murkyTextScaleBases.set(el,base); } if(base!=null&&Number.isFinite(base)) el.style.fontSize=`${base*murkyTextScaleValue}px`; } }
+    const murkyTextScaleObserver=new MutationObserver(m=>{if(m.some(x=>x.addedNodes.length))applyMurkyTextScale(murkyTextScaleValue)});
+    murkyTextScaleObserver.observe(document.body,{childList:true,subtree:true});
+    const ENGINES = {
+      duckduckgo: "https://duckduckgo.com/?q=",
+      google: "https://www.google.com/search?q=",
+      bing: "https://www.bing.com/search?q=",
+      startpage: "https://www.startpage.com/sp/search?query=",
+      ecosia: "https://www.ecosia.org/search?q=",
+    };
+
+     
+     
+    const GREETINGS = {
+      morning: ["Good morning. Where to?", "Morning. What are we finding today?", "Rise and search."],
+      afternoon: ["Good afternoon. Where to?", "Afternoon. What's next?", "Where to, this afternoon?"],
+      evening: ["Good evening. Where to?", "Evening. What can we find?", "Where to, tonight?"],
+      night: ["Still up? Where to?", "Good night, one more search?", "Quiet hours. Where to?"],
+    };
+
+    function periodForHour(h) {
+      if (h >= 5 && h < 12) return "morning";
+      if (h >= 12 && h < 17) return "afternoon";
+      if (h >= 17 && h < 22) return "evening";
+      return "night";
+    }
+
+    function pickGreeting() {
+      const period = periodForHour(new Date().getHours());
+      const options = GREETINGS[period];
+      return options[Math.floor(Math.random() * options.length)];
+    }
+
+     
+     
+    let currentGreeting = "";
+    async function applyLocalGreeting(target = "en") {
+      const greeting = document.getElementById("greeting");
+      if (!greeting) return;
+      const source = currentGreeting || pickGreeting();
+      currentGreeting = source;
+      if (target === "en" || !window.murkyPage?.localizeText) {
+        greeting.textContent = source;
+        return;
+      }
+      try {
+        const result = await window.murkyPage.localizeText([source], target);
+        greeting.textContent = result?.[0] || source;
+      } catch {
+        greeting.textContent = source;
+      }
+    }
+
+    function resolve(raw, engine) {
+      const v = raw.trim();
+      const looksLikeUrl =
+        /^https?:\/\//i.test(v) ||
+        /^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/i.test(v) ||
+        v.startsWith("localhost");
+      if (looksLikeUrl) return /^https?:\/\//i.test(v) ? v : "https://" + v;
+      const base = ENGINES[engine] || ENGINES.duckduckgo;
+      return base + encodeURIComponent(v);
+    }
+
+    function initial(str) {
+      try {
+        const host = new URL(str).hostname.replace(/^www\./, "");
+        return host[0]?.toUpperCase() || "?";
+      } catch {
+        return "?";
+      }
+    }
+    function label(str) {
+      try {
+        return new URL(str).hostname.replace(/^www\./, "");
+      } catch {
+        return str;
+      }
+    }
+
+    let currentEngine = "duckduckgo";
+
+    function applyLiveSettings(settings) {
+      document.documentElement.style.setProperty("--accent", settings.accent);
+      document.documentElement.style.setProperty("--bg", settings.background);
+      document.documentElement.style.setProperty("--surface", settings.surface);
+      const raw = String(settings.background || "#0A1412").replace("#", "");
+      const n = parseInt(raw, 16);
+      const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+      const whiteness = (r + g + b) / 765;
+      const light = whiteness > 0.75;
+      document.documentElement.style.setProperty("--greeting-color", light ? "#000" : "#fff");
+      document.documentElement.style.setProperty("--text", light ? "#000000" : "#FFFFFF");
+      document.documentElement.style.setProperty("--text-dim", light ? "#555555" : "#A8A8A8");
+      currentEngine = settings.searchEngine || "duckduckgo";
+      const photo = settings.backgroundImage ? String(settings.backgroundImage) : "";
+      document.body.classList.toggle("murky-photo-active", !!photo);
+      document.documentElement.style.backgroundColor = "transparent";
+      document.body.style.backgroundColor = "transparent";
+      document.documentElement.style.setProperty("--murky-photo", photo ? `url("${photo.replace(/"/g, '\\"')}")` : "none");
+      document.documentElement.style.setProperty("--murky-photo-size", settings.backgroundFit === "stretch" ? "100% 100%" : "cover");
+      document.documentElement.style.setProperty("--murky-photo-overlay", "transparent");
+      document.body.style.backgroundImage = "none";
+
+    }
+
+
+
+     
+     
+     
+    let audioContext = null;
+    let analyser = null;
+    let micStream = null;
+    let processor = null;
+    let waveFrame = 0;
+    let listening = false;
+    let finalTranscript = "";
+    let pendingSamples = [];
+    let pendingSampleCount = 0;
+    let recognitionBusy = false;
+    let stopping = false;
+    let speechLanguage = /^tr(?:-|$)/i.test(navigator.language || "") ? "tr-TR" : "en-US";
+    const CHUNK_SECONDS = 0.5;
+    const TARGET_RATE = 16000;
+
+    function updateSpeechPreview(text, animate = false) {
+      const el = document.getElementById("speechPreview");
+      el.textContent = text || "Listening…";
+      if (animate) {
+        el.classList.remove("rise");
+        void el.offsetWidth;
+        el.classList.add("rise");
+      }
+    }
+
+    function stopVolumeMeter() {
+      if (waveFrame) cancelAnimationFrame(waveFrame);
+      waveFrame = 0;
+      document.querySelectorAll(".speech-wave").forEach((el) => { el.style.transform = "scaleY(.35)"; });
+      if (processor) { try { processor.disconnect(); } catch {} processor = null; }
+      if (micStream) micStream.getTracks().forEach((t) => t.stop());
+      micStream = null;
+      if (audioContext) { audioContext.close().catch(() => {}); audioContext = null; }
+      analyser = null;
+    }
+
+    function animateVolume() {
+      if (!analyser || !listening) return;
+      const data = new Uint8Array(analyser.fftSize);
+      analyser.getByteTimeDomainData(data);
+      let sum = 0;
+      for (const v of data) { const n = (v - 128) / 128; sum += n * n; }
+      const rms = Math.min(1, Math.sqrt(sum / data.length) * 3.8);
+      const heights = [0.35 + rms * 1.7, 0.45 + rms * 2.2, 0.35 + rms * 1.55];
+      document.querySelectorAll(".speech-wave").forEach((el, i) => {
+        el.style.transform = `scaleY(${Math.min(3.2, heights[i])})`;
+      });
+      waveFrame = requestAnimationFrame(animateVolume);
+    }
+
+    function mergeSamples(chunks, count) {
+      const out = new Float32Array(count);
+      let offset = 0;
+      for (const chunk of chunks) { out.set(chunk, offset); offset += chunk.length; }
+      return out;
+    }
+
+    function resampleLinear(input, sourceRate, targetRate) {
+      if (sourceRate === targetRate) return input;
+      const length = Math.max(1, Math.round(input.length * targetRate / sourceRate));
+      const output = new Float32Array(length);
+      const ratio = sourceRate / targetRate;
+      for (let i = 0; i < length; i++) {
+        const pos = i * ratio;
+        const left = Math.floor(pos);
+        const right = Math.min(input.length - 1, left + 1);
+        const frac = pos - left;
+        output[i] = input[left] * (1 - frac) + input[right] * frac;
+      }
+      return output;
+    }
+
+    function encodePcm16(float32) {
+      const pcm = new Int16Array(float32.length);
+      for (let i = 0; i < float32.length; i++) {
+        const s = Math.max(-1, Math.min(1, float32[i]));
+        pcm[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+      }
+      return pcm.buffer;
+    }
+
+    function hasLikelySpeech(samples, sourceRate) {
+      if (!samples?.length) return false;
+      let sum = 0;
+      let peak = 0;
+      let crossings = 0;
+      let previous = samples[0] || 0;
+      for (let i = 0; i < samples.length; i++) {
+        const v = samples[i] || 0;
+        sum += v * v;
+        peak = Math.max(peak, Math.abs(v));
+        if ((v >= 0) !== (previous >= 0)) crossings++;
+        previous = v;
+      }
+      const rms = Math.sqrt(sum / samples.length);
+      const zcr = crossings / samples.length;
+       
+       
+       
+      return rms > 0.012 && peak > 0.035 && zcr > 0.005 && zcr < 0.25;
+    }
+
+    function cleanSpeechTranscript(text) {
+      let value = String(text || "").trim();
+      if (!value) return "";
+      value = value.replace(/\[(?:blank\s*audio|music|applause|laughter|laughing|silence|inaudible|noise|sound effect|sfx)[^\]]*\]/gi, " ");
+      value = value.replace(/<\|(?:nospeech|endoftext)\|>/gi, " ");
+      value = value.replace(/\s+/g, " ").trim();
+       
+      if (/^(?:\[[^\]]+\]|(?:blank audio|music|applause|laughter|silence|inaudible|noise))$/i.test(value)) return "";
+      return value;
+    }
+
+    async function sendSpeechChunk(samples) {
+      if (!samples?.length || !window.murkyPage?.speechRecognize) return "";
+      const sourceRate = audioContext?.sampleRate || TARGET_RATE;
+      if (!hasLikelySpeech(samples, sourceRate)) return "";
+      recognitionBusy = true;
+      try {
+        const resampled = resampleLinear(samples, sourceRate, TARGET_RATE);
+        const pcm = encodePcm16(resampled);
+        const result = await window.murkyPage.speechRecognize({ pcm, languageCode: speechLanguage });
+        if (!result?.ok) {
+          updateSpeechPreview(`Voice recognition error: ${result?.error || "unknown error"}`);
+          return "";
+        }
+        return cleanSpeechTranscript(result.transcript);
+      } finally {
+        recognitionBusy = false;
+      }
+    }
+
+    async function flushSpeechChunk(force = false) {
+      const minimum = Math.floor((audioContext?.sampleRate || TARGET_RATE) * CHUNK_SECONDS);
+      if (!force && pendingSampleCount < minimum) return;
+      if (!pendingSampleCount || recognitionBusy) return;
+      const samples = mergeSamples(pendingSamples, pendingSampleCount);
+      pendingSamples = [];
+      pendingSampleCount = 0;
+      const transcript = await sendSpeechChunk(samples);
+      if (transcript && !stopping) {
+        finalTranscript = [finalTranscript, transcript].filter(Boolean).join(" ").trim();
+        updateSpeechPreview(finalTranscript, true);
+        document.getElementById("searchInput").value = finalTranscript;
+      }
+    }
+
+    function stopRecognition() {
+      listening = false;
+      stopping = true;
+      const popup = document.getElementById("speechPopup");
+      popup.classList.remove("listening");
+      popup.classList.add("finished");
+      document.getElementById("speechMic").setAttribute("aria-label", "Record again");
+      stopVolumeMeter();
+      pendingSamples = [];
+      pendingSampleCount = 0;
+    }
+
+    async function startRecognition() {
+      if (listening) { await finishRecognition(); return; }
+      finalTranscript = "";
+      pendingSamples = [];
+      pendingSampleCount = 0;
+      recognitionBusy = false;
+      stopping = false;
+      const popup = document.getElementById("speechPopup");
+      popup.hidden = false;
+      popup.classList.remove("listening");
+      updateSpeechPreview("Starting microphone…");
+
+      try {
+        if (!window.murkyPage?.speechRecognize) throw new Error("Local voice bridge is unavailable.");
+        micStream = await navigator.mediaDevices.getUserMedia({
+          video: false,
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 },
+        });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioContext.state === "suspended") await audioContext.resume();
+        const source = audioContext.createMediaStreamSource(micStream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        processor = audioContext.createScriptProcessor(4096, 1, 1);
+        const silentGain = audioContext.createGain();
+        silentGain.gain.value = 0;
+        source.connect(processor);
+        processor.connect(silentGain);
+        silentGain.connect(audioContext.destination);
+        processor.onaudioprocess = (event) => {
+          if (!listening || stopping) return;
+          const input = new Float32Array(event.inputBuffer.getChannelData(0));
+          pendingSamples.push(input);
+          pendingSampleCount += input.length;
+          if (pendingSampleCount >= Math.floor(audioContext.sampleRate * CHUNK_SECONDS) && !recognitionBusy) {
+            flushSpeechChunk(false).catch((error) => updateSpeechPreview(`Voice recognition error: ${error?.message || "request failed"}`));
+          }
+        };
+
+        listening = true;
+        popup.classList.add("listening");
+        updateSpeechPreview("Listening…");
+        animateVolume();
+      } catch (error) {
+        stopRecognition();
+        updateSpeechPreview(error?.name === "NotAllowedError"
+          ? "Microphone permission was denied."
+          : `Voice recognition unavailable: ${error?.message || "unknown error"}`);
+      }
+    }
+
+    async function finishRecognition() {
+      if (!listening) return;
+
+       
+       
+       
+      stopping = true;
+      const remaining = pendingSampleCount ? mergeSamples(pendingSamples, pendingSampleCount) : null;
+      pendingSamples = [];
+      pendingSampleCount = 0;
+      stopRecognition();
+
+      const textNow = finalTranscript.trim();
+      document.getElementById("searchInput").value = textNow;
+      updateSpeechPreview(textNow || "No speech detected", true);
+
+       
+       
+       
+      if (remaining?.length) {
+        try {
+          const transcript = await sendSpeechChunk(remaining);
+          if (transcript) {
+            finalTranscript = [finalTranscript, transcript].filter(Boolean).join(" ").trim();
+            const text = finalTranscript;
+            document.getElementById("searchInput").value = text;
+            updateSpeechPreview(text, true);
+          }
+        } catch {}
+      }
+    }
+
+    let speechCloseTimer = null;
+    function openSpeechPopup() {
+      const popup = document.getElementById("speechPopup");
+      const backdrop = document.getElementById("speechBackdrop");
+      clearTimeout(speechCloseTimer);
+      popup.hidden = false;
+      backdrop.hidden = false;
+      popup.classList.remove("is-closing", "listening", "finished");
+      backdrop.classList.remove("is-closing");
+      void popup.offsetWidth;
+      popup.classList.add("is-open");
+      backdrop.classList.add("is-open");
+      document.body.classList.add("speech-open");
+      finalTranscript = "";
+      updateSpeechPreview("Tap the microphone to start", true);
+      document.getElementById("speechMic").setAttribute("aria-label", "Start voice search");
+    }
+
+    function closeSpeechPopup() {
+      if (listening) stopRecognition();
+      const popup = document.getElementById("speechPopup");
+      const backdrop = document.getElementById("speechBackdrop");
+      if (popup.hidden || popup.classList.contains("is-closing")) return;
+      popup.classList.remove("is-open");
+      popup.classList.add("is-closing");
+      backdrop.classList.remove("is-open");
+      backdrop.classList.add("is-closing");
+      document.body.classList.remove("speech-open");
+      clearTimeout(speechCloseTimer);
+      speechCloseTimer = setTimeout(() => {
+        popup.hidden = true;
+        backdrop.hidden = true;
+        popup.classList.remove("is-closing");
+        backdrop.classList.remove("is-closing");
+        document.getElementById("micBtn")?.focus({ preventScroll: true });
+      }, 180);
+    }
+
+    async function confirmSpeechSearch() {
+      const text = finalTranscript.trim() || document.getElementById("searchInput").value.trim();
+      if (!text) return;
+      document.getElementById("searchInput").value = text;
+      closeSpeechPopup();
+      document.getElementById("searchForm").requestSubmit();
+    }
+
+    document.getElementById("micBtn").addEventListener("click", openSpeechPopup);
+    document.getElementById("speechMic").addEventListener("click", () => {
+      if (listening) {
+        finishRecognition();
+      } else {
+         
+        finalTranscript = "";
+        document.getElementById("searchInput").value = "";
+        document.getElementById("speechPopup").classList.remove("finished");
+        updateSpeechPreview("Starting microphone…", true);
+        startRecognition();
+      }
+    });
+    document.getElementById("speechConfirm").addEventListener("click", confirmSpeechSearch);
+    document.getElementById("speechClose").addEventListener("click", closeSpeechPopup);
+    document.getElementById("speechBackdrop").addEventListener("click", closeSpeechPopup);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !document.getElementById("speechPopup").hidden) closeSpeechPopup();
+    });
+
+    let centerHistory = [];
+    let centerFocused = false;
+    let centerSuggestionIndex = -1;
+    let centerSuggestionRun = 0;
+    const centerTrendingCache = new Map();
+    const CENTER_TRENDING_TTL = 5 * 60 * 1000;
+    const TRENDING_ICON = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up-icon lucide-trending-up"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></svg>';
+    const centerSuggestions = document.getElementById("centerSuggestions");
+    const searchInput = document.getElementById("searchInput");
+
+    function setCenterSuggestionsVisible(visible) {
+      const form = document.getElementById("searchForm");
+      if (visible) {
+        const natural = Math.min(180, 10 + centerSuggestions.children.length * 42);
+        form.style.setProperty("--ac-height", `${natural}px`);
+        centerSuggestions.hidden = false;
+        form.classList.add("has-ac");
+      } else {
+        form.style.setProperty("--ac-height", "0px");
+        form.classList.remove("has-ac");
+        setTimeout(() => { if (!form.classList.contains("has-ac")) centerSuggestions.hidden = true; }, 190);
+      }
+    }
+
+    function centerHistoryItems(query) {
+      const q = query.trim().toLowerCase();
+      const out = [], seen = new Set();
+      for (const h of centerHistory) {
+        if (h?.type !== "search" || !h.query) continue;
+        const value = String(h.query).trim(), low = value.toLowerCase();
+        if (q && !low.includes(q)) continue;
+        if (seen.has(low)) continue;
+        seen.add(low); out.push({ value, kind: "history", type: "Past search", score: q ? (low.startsWith(q) ? 120 : 100) : 110 });
+      }
+      return out;
+    }
+
+    async function centerRemoteSuggestions(query) {
+      if (!query.trim() || !window.murkyPage?.getSearchSuggestions) return [];
+      const run = ++centerSuggestionRun;
+      try {
+        let result = await window.murkyPage.getSearchSuggestions(query.trim(), currentEngine);
+        if (!Array.isArray(result) || result.length === 0) result = await window.murkyPage.getSearchSuggestions(query.trim(), "duckduckgo");
+        return run === centerSuggestionRun && Array.isArray(result) ? result : [];
+      } catch { return []; }
+    }
+
+    async function centerTrendingSearches() {
+      if (!window.murkyPage?.getTrendingSearches) return [];
+      const cached = centerTrendingCache.get(currentEngine);
+      if (cached && Date.now() - cached.at < CENTER_TRENDING_TTL) return cached.values;
+      try {
+        const values = await window.murkyPage.getTrendingSearches(currentEngine);
+        const result = Array.isArray(values) ? values : [];
+        centerTrendingCache.set(currentEngine, { values: result, at: Date.now() });
+        return result;
+      } catch { return cached?.values || []; }
+    }
+
+    async function renderCenterSuggestions() {
+      if (!centerFocused) { setCenterSuggestionsVisible(false); return; }
+      const query = searchInput.value.trim();
+      try { centerHistory = await window.murkyPage?.listHistory?.() || centerHistory; } catch {}
+      const history = centerHistoryItems(query);
+      const limit = 4;
+      if (history.length) renderCenterSuggestionRows(history.slice(0, limit));
+      else if (query) setCenterSuggestionsVisible(false);
+      if (!query) {
+        const remote = await centerTrendingSearches();
+        if (!centerFocused || searchInput.value.trim()) return;
+        const seen = new Set(history.map(x => x.value.toLowerCase()));
+        const others = [];
+        for (const value of remote) {
+          const text = String(value || '').trim(), low = text.toLowerCase();
+          if (!text || seen.has(low)) continue;
+          seen.add(low); others.push({ value: text, kind: 'trending', type: 'Trending search' });
+          if (history.length + others.length >= limit) break;
+        }
+        renderCenterSuggestionRows([...history, ...others].slice(0, limit));
+        return;
+      }
+      const remote = await centerRemoteSuggestions(query);
+      if (!centerFocused || searchInput.value.trim() !== query) return;
+      const seen = new Set(history.map(x => x.value.toLowerCase()));
+      const others = [];
+      for (const value of remote) {
+        const text = String(value || '').trim(), low = text.toLowerCase();
+        if (!text || seen.has(low)) continue;
+        seen.add(low); others.push({ value: text, kind: 'suggestion', type: 'Search suggestion' });
+        if (history.length + others.length >= limit) break;
+      }
+      renderCenterSuggestionRows([...history, ...others].slice(0, limit));
+    }
+
+    function renderCenterSuggestionRows(items) {
+      centerSuggestions.innerHTML = '';
+      centerSuggestionIndex = -1;
+      for (const item of items) {
+        const btn = document.createElement('button'); btn.type='button'; btn.className='center-suggestion';
+        const icon = item.kind === 'history' ? lucide.svg('history') : item.kind === 'trending' ? TRENDING_ICON : lucide.svg('search');
+        btn.innerHTML = `${icon}<span class="center-suggestion-main"></span>${item.kind === 'history' ? `<span class="center-suggestion-delete" role="button" tabindex="0" aria-label="Delete past search" title="Delete">${lucide.svg('x')}</span>` : ''}`;
+        btn.querySelector('.center-suggestion-main').textContent=item.value;
+        btn.addEventListener('mousedown',e=>e.preventDefault());
+        const del=btn.querySelector('.center-suggestion-delete');
+        if(del){ const remove=async(e)=>{ e.preventDefault(); e.stopPropagation(); if(del.dataset.busy)return; del.dataset.busy='1'; btn.classList.add('removing'); try{await window.murkyPage?.removeSearch?.(item.value);}catch{} setTimeout(async()=>{centerHistory=await window.murkyPage?.listHistory?.()||centerHistory; renderCenterSuggestions();},120); }; del.addEventListener('click',remove); del.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')remove(e);}); }
+        btn.addEventListener('click',e=>{if(e.target.closest('.center-suggestion-delete'))return; searchInput.value=item.value; setCenterSuggestionsVisible(false); document.getElementById('searchForm').requestSubmit();});
+        centerSuggestions.appendChild(btn);
+      }
+      setCenterSuggestionsVisible(items.length>0);
+    }
+
+    searchInput.addEventListener("focus", async () => { centerFocused = true; try { centerHistory = await window.murkyPage?.listHistory?.() || centerHistory; } catch {} renderCenterSuggestions(); });
+    searchInput.addEventListener("input", renderCenterSuggestions);
+    searchInput.addEventListener("blur", () => setTimeout(() => { centerFocused = false; setCenterSuggestionsVisible(false); }, 120));
+    searchInput.addEventListener("keydown", e => {
+      const items = centerSuggestions.querySelectorAll(".center-suggestion");
+      if ((e.key === "ArrowDown" || e.key === "ArrowUp") && !centerSuggestions.hidden && items.length) {
+        e.preventDefault(); centerSuggestionIndex = e.key === "ArrowDown" ? (centerSuggestionIndex + 1) % items.length : (centerSuggestionIndex - 1 + items.length) % items.length;
+        items.forEach((x,i)=>x.classList.toggle("selected",i===centerSuggestionIndex)); return;
+      }
+      if (e.key === "Escape") setCenterSuggestionsVisible(false);
+      if (e.key === "Enter" && centerSuggestionIndex >= 0 && items[centerSuggestionIndex]) { e.preventDefault(); items[centerSuggestionIndex].click(); }
+    });
+
+    (async () => {
+      let settings = { searchEngine: "duckduckgo", accent: "#E3A857", background: "#0A1412", surface: "#10201D" };
+      if (window.murkyPage) {
+        try { settings = { ...settings, ...(await window.murkyPage.getSettings()) }; } catch {}
+      }
+
+      applyLiveSettings(settings);
+      currentGreeting = pickGreeting();
+      await applyLocalGreeting(settings.preferredLanguages?.[0] || "en");
+      if (window.murkyPage) {
+        window.murkyPage.onSettingsUpdate((s) => {
+          applyLiveSettings(s);
+          applyLocalGreeting(s?.preferredLanguages?.[0] || "en");
+        });
+      }
+      document.getElementById("searchForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const q = document.getElementById("searchInput").value.trim();
+        if (!q) return;
+        try { await window.murkyPage?.addSearch(q); } catch {}
+        window.location.href = resolve(q, currentEngine);
+      });
+    })();
+  </script>
+</body>
+</html>

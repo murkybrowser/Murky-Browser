@@ -1,0 +1,158 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head><body>
+<script type="module">
+import { BatchTranslator, TranslatorBacking } from "/bergamot/translator.js";
+
+const HF_BASE = "https://huggingface.co/TiberiuCristianLeon/Bergamot/resolve/main/tiny";
+const translatorCache = new Map();
+const initCache = new Map();
+
+function pairFiles(pair) {
+  return {
+    [`model.${pair}.intgemm.alphas.bin.gz`]: `${HF_BASE}/${pair}/model.${pair}.intgemm.alphas.bin.gz`,
+    [`lex.50.50.${pair}.s2t.bin.gz`]: `${HF_BASE}/${pair}/lex.50.50.${pair}.s2t.bin.gz`,
+    [`vocab.${pair}.spm.gz`]: `${HF_BASE}/${pair}/vocab.${pair}.spm.gz`
+  };
+}
+
+async function gunzipUrl(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`Model file returned HTTP ${r.status}: ${url}`);
+  const data = await r.arrayBuffer();
+  if (typeof DecompressionStream !== "function") throw new Error("This Chromium build has no DecompressionStream");
+  return await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer();
+}
+
+function buildConfig(pair) {
+  return {
+    "bergamot-mode":"wasm", models:[`model.${pair}.intgemm.alphas.bin`],
+    vocabs:[`vocab.${pair}.spm`], shortlist:[`lex.50.50.${pair}.s2t.bin`],
+    "beam-size":1, normalize:1.0, "word-penalty":0, "max-length-break":128,
+    "mini-batch-words":1024, workspace:128, "max-length-factor":2.0, "skip-cost":true,
+    "cpu-threads":0, quiet:false, "quiet-translation":false,
+    "gemm-precision":"int8shiftAlphaAll", alignment:"soft"
+  };
+}
+
+async function loadPair(from, to) {
+  const pair = `${from}${to}`;
+  if (translatorCache.has(pair)) return translatorCache.get(pair);
+  if (initCache.has(pair)) return initCache.get(pair);
+  const files = pairFiles(pair);
+  const p = (async () => {
+    const names = Object.keys(files);
+    const modelName = names.find(n => n.startsWith(`model.${pair}.`));
+    const lexName = names.find(n => n.startsWith(`lex.50.50.${pair}.`));
+    const vocabName = names.find(n => n === `vocab.${pair}.spm.gz`);
+    const [model, shortlist, vocab] = await Promise.all([
+      gunzipUrl(files[modelName]),
+      gunzipUrl(files[lexName]),
+      gunzipUrl(files[vocabName])
+    ]);
+    return {
+      model, shortlist, vocabs:[vocab],
+      config:buildConfig(pair)
+    };
+  })().then(x => { translatorCache.set(pair, x); return x; }).finally(() => initCache.delete(pair));
+  initCache.set(pair, p);
+  return p;
+}
+
+const AVAILABLE_PAIRS = new Set([
+  "aren","bgen","bsen","caen","zhen","hren","csen","daen","nlen","eten","fien","fren","deen","elen","huen","isen","iden","iten","jaen","koen","lven","lten","mten","nben","nnen","faen","plen","pten","roen","ruen","sren","sken","slen","esen","sven","tren","uken","vien",
+  "enaz","enbg","enbn","enca","encs","enda","ende","enel","enes","enet","enfa","enfi","enfr","engu","enhe","enhi","enhr","enhu","enid","enit","enja","enkn","enlt","enlv","enml","enms","ennl","enpl","enpt","enro","enru","ensk","ensl","ensq","ensv","enta","ente","entr","enuk","envi","enzh"
+]);
+const AVAILABLE_EN_TARGETS = new Set(Array.from(AVAILABLE_PAIRS).filter(p => p.startsWith("en")).map(p => p.slice(2)));
+
+class MurkyBacking extends TranslatorBacking {
+   
+   
+   
+   
+   
+  async loadModelRegistery() {
+    return Array.from(AVAILABLE_PAIRS, pair => ({
+      from: pair.slice(0, 2),
+      to: pair.slice(2),
+      files: {}
+    }));
+  }
+
+  async loadTranslationModel({from,to}) {
+    return loadPair(from,to);
+  }
+}
+
+let translator = null;
+let initPromise = null;
+const supported = new Set();
+const unsupported = new Set();
+
+async function getTranslator() {
+  if (translator) return translator;
+  if (initPromise) return initPromise;
+  initPromise = (async () => {
+    const backing = new MurkyBacking({});
+    const tr = new BatchTranslator({
+      pivotLanguage: null,
+      workerUrl: "/bergamot/worker/translator-worker.js",
+      downloadTimeout: 300000, workers: 1, batchSize: 8, cacheSize: 4000
+    }, backing);
+    translator = tr;
+    return tr;
+  })().catch(error => { initPromise=null; throw error; });
+  return initPromise;
+}
+
+window.__murkyTranslationEngineReady = false;
+window.__murkyTranslate = async (texts, from, to) => {
+  if (!Array.isArray(texts) || !texts.length || from === to) return texts || [];
+  const key = `${from}:${to}`;
+  if (unsupported.has(key)) throw new Error(`No model available for ${from} -> ${to}`);
+  const tr = await getTranslator();
+  async function runDirect(a, b, input) {
+    const pair = `${a}${b}`;
+    if (!AVAILABLE_PAIRS.has(pair)) throw new Error(`No Bergamot model available for ${a} -> ${b}`);
+    if (!supported.has(`${a}:${b}`)) {
+      const loaded = await loadPair(a, b);
+      if (!loaded?.model || !loaded?.shortlist || !loaded?.vocabs?.length) throw new Error(`Model files incomplete for ${a} -> ${b}`);
+      supported.add(`${a}:${b}`);
+    }
+    const one = async (text) => {
+      const sourceText = String(text);
+      const parts = sourceText.split(/(\bMurky\b)/g);
+      const translatedParts = [];
+      for (const part of parts) {
+        if (/^Murky$/.test(part)) { translatedParts.push("Murky"); continue; }
+        if (!part) continue;
+        const r = await tr.translate({from:a,to:b,text:part,html:false,priority:0});
+        translatedParts.push(String(r?.target?.text ?? ""));
+      }
+      return translatedParts.join("");
+    };
+    const out = await Promise.all(input.map(one));
+    return out;
+  }
+  try {
+    if (AVAILABLE_PAIRS.has(`${from}${to}`)) return await runDirect(from, to, texts);
+    if (from !== "en" && to !== "en" && AVAILABLE_PAIRS.has(`${from}en`) && AVAILABLE_PAIRS.has(`en${to}`)) {
+      const english = await runDirect(from, "en", texts);
+      return await runDirect("en", to, english);
+    }
+    throw new Error(`No Bergamot translation path for ${from} -> ${to}`);
+  } catch (e) {
+    if (/No Bergamot translation path|No Bergamot model available/.test(String(e && e.message))) unsupported.add(key);
+    throw e;
+  }
+};
+
+(async()=>{
+  try {
+    await getTranslator();
+    window.__murkyTranslationEngineReady=true;
+    window.dispatchEvent(new Event("murky-translation-ready"));
+  } catch(e) {
+    window.__murkyTranslationEngineReady=false;
+  }
+})();
+</script></body></html>
