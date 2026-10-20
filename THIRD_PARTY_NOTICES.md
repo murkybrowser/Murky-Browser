@@ -31,6 +31,14 @@ A royalty-free jazz track.
 - Track / artist: AtlasAudio https://pixabay.com/users/atlasaudio-54514918/
 - License: https://pixabay.com/service/license-summary/
 
+## Ad blocker filter lists (downloaded at runtime, not bundled)
+
+The ad blocker's syntax support follows the Adblock Plus / uBlock Origin filter format. When "Use community filter lists" is on, Murky downloads these lists from their publishers onto the user's machine. Their licenses apply to the downloaded lists; they are not part of this repository.
+
+- EasyList and EasyPrivacy - https://easylist.to (GPLv3 / CC BY-SA 3.0)
+- uBlock Origin filter lists (uAssets) - https://github.com/uBlockOrigin/uAssets (GPLv3)
+- Peter Lowe's ad server list - https://pgl.yoyo.org/adservers/
+
 ## npm dependencies
 
 Installed through npm, not bundled in this repository. Each is under its own license; see the package pages.
