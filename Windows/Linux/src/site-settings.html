@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self';" />
+<title>Site Settings</title>
+<style>
+  :root {
+    --bg: #0A1412;
+    --surface: #10201D;
+    --surface-2: color-mix(in srgb, var(--surface) 100%, white 14%);
+    --border: color-mix(in srgb, var(--surface) 70%, white 22%);
+    --text: #E4EDE9;
+    --text-dim: #8FA69E;
+    --accent: #E3A857;
+    --danger: #E0654F;
+    --ui-font: "Segoe UI", system-ui, -apple-system, sans-serif;
+    --mono-font: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+    --glass-blur: 18px;
+    --glass-alpha: 0.72;
+  }
+  * { box-sizing: border-box; }
+  :focus { outline: none; }
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent) 82%, var(--text));
+    outline-offset: 2px;
+  }
+  html, body {
+    margin: 0; height: 100%;
+    background-image: var(--bg-image, none), linear-gradient(180deg, var(--bg), color-mix(in srgb, var(--bg) 85%, black));
+    background-size: var(--bg-fit, cover), auto;
+    background-position: center, center;
+    background-repeat: no-repeat, no-repeat;
+    color: var(--text);
+    font-family: var(--ui-font);
+    font-size: 13.5px;
+    user-select: none;
+    -webkit-user-select: none;
+    overflow: hidden;
+  }
+  .shell { display: flex; height: 100%; animation: fadeIn 0.25s ease both; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .content { flex: 1; overflow-y: auto; padding: 28px 36px 60px; }
+  .panel { display: none; max-width: 560px; margin: 0 auto; animation: fadeUp 0.2s ease both; }
+  .panel.active { display: block; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; margin: 0 0 18px; }
+  .panel h2 { font-size: 17px; margin: 0; }
+
+  .card {
+    background: color-mix(in srgb, var(--surface) 85%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px 18px;
+    margin-bottom: 16px;
+  }
+  .card-note { color: var(--text-dim); font-size: 11.5px; line-height: 1.6; padding: 12px 2px; }
+  .card-note.top-note { padding-top: 12px; }
+
+  .row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); gap: 16px; }
+  .row:first-child { border-top: none; }
+  .row label:first-child, .row .row-label { font-size: 12.8px; color: var(--text); }
+  .row .row-sub { font-size: 10.8px; color: var(--text-dim); margin-top: 3px; display: block; }
+  .murky-select-wrap { position: relative; min-width: 160px; }
+  .murky-select-wrap > select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; }
+  .murky-select-btn {
+    width: 100%; min-width: 160px; height: 32px; padding: 6px 30px 6px 10px;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--bg); color: var(--text); font: 12.4px var(--ui-font);
+    text-align: left; cursor: pointer; position: relative;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .murky-select-btn::after {
+    content: ""; position: absolute; right: 10px; top: 50%; width: 7px; height: 7px;
+    border-right: 1.5px solid var(--text-dim); border-bottom: 1.5px solid var(--text-dim);
+    transform: translateY(-65%) rotate(45deg); transition: transform .15s ease;
+  }
+  .murky-select-wrap.open .murky-select-btn { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--bg)); }
+  .murky-select-wrap.open .murky-select-btn::after { transform: translateY(-30%) rotate(225deg); }
+  .murky-select-menu {
+    position: absolute; left: 0; top: calc(100% + 5px); width: 100%; padding: 4px;
+    background: color-mix(in srgb, var(--surface) 97%, black);
+    border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: 0 16px 36px rgba(0,0,0,.38); z-index: 300;
+    overflow: hidden; animation: dropdownIn .12s ease both;
+  }
+  .murky-select-menu[hidden] { display: none; }
+  @keyframes dropdownIn { from { opacity: 0; transform: translateY(-4px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  .murky-select-option {
+    width: 100%; border: 0; border-radius: 7px; padding: 7px 9px;
+    background: transparent; color: var(--text); font: 12px var(--ui-font); text-align: left; cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+  }
+  .murky-select-option:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); }
+  .murky-select-option.selected { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+  .danger-btn {
+    background: color-mix(in srgb, var(--danger) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
+    color: var(--danger);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: var(--ui-font);
+    cursor: pointer;
+  }
+  .danger-btn:hover { background: color-mix(in srgb, var(--danger) 22%, transparent); }
+  .site-sub { color: var(--text-dim); font-size: 11.5px; margin: -10px 0 18px; }
+  .note-empty { color: var(--text-dim); padding: 40px 0; text-align: center; }
+  .settings-btn, .danger-btn { transition: background-color .16s ease, color .16s ease, border-color .16s ease, transform .16s cubic-bezier(.2,.8,.2,1); }
+  .settings-btn:active, .danger-btn:active { transform: scale(.975); transition-duration: .06s; }
+  summary { transition: color .15s ease; }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <main class="content">
+      <section class="panel active" id="panel-site">
+        <div class="panel-head"><h2 id="title" data-i18n="Site settings">Site settings</h2></div>
+        <div id="siteBody" hidden>
+          <div class="card">
+            <div class="row">
+              <div><span class="row-label" data-i18n="Cache and cookies">Cache and cookies</span><span class="row-sub" id="usage" data-i18n="Loading…">Loading…</span></div>
+              <button class="danger-btn" id="clearBtn" type="button" data-i18n="Clear">Clear</button>
+            </div>
+          </div>
+          <div class="card" id="perms"></div>
+          <div class="card-note" data-i18n="Applies to this site and its subdomains. &quot;Always ask&quot; shows a prompt each time the site requests access.">Applies to this site and its subdomains. "Always ask" shows a prompt each time the site requests access.</div>
+        </div>
+        <div class="note-empty" id="empty" hidden data-i18n="No site selected. Open Site settings from the address bar while on a website.">No site selected. Open Site settings from the address bar while on a website.</div>
+      </section>
+    </main>
+  </div>
+  <script src="site-settings.js"></script>
+</body>
+</html>

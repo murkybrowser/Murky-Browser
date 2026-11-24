@@ -1,0 +1,106 @@
+:root {
+  --bg: #0A1412;
+  --surface: #10201D;
+  --surface-2: #1a2b27;
+  --border: rgba(228,237,233,.16);
+  --text: #E4EDE9;
+  --text-dim: #8FA69E;
+  --accent: #E3A857;
+  --danger: #E0654F;
+  --font: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --scale: 1;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; font-family: var(--font); color: var(--text); user-select: none; }
+#root { width: 100%; height: 100%; position: relative; }
+
+.panel {
+  position: absolute;
+  left: 9px;
+  top: 9px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--surface) 97%, black);
+  box-shadow: 0 9px 22px rgba(0,0,0,.28), 0 2px 7px rgba(0,0,0,.16);
+  overflow: hidden;
+  transform-origin: top left;
+  will-change: opacity, transform;
+}
+.panel.preview { width: 270px; height: 190px; padding: 7px; }
+.panel.context { width: 158px; height: 171px; padding: 5px; }
+
+@keyframes overlayEnter {
+  from { opacity: 0; transform: translateY(-4px) scale(.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes overlayExit {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-3px) scale(.985); }
+}
+.panel.entering { animation: overlayEnter 140ms cubic-bezier(.2,.8,.2,1) both; }
+.panel.exiting  { animation: overlayExit 90ms cubic-bezier(.4,0,1,1) both; pointer-events: none; }
+
+.content { display: flex; flex-direction: column; height: 100%; }
+@keyframes swapFromRight { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes swapFromLeft  { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes swapFade      { from { opacity: 0; } to { opacity: 1; } }
+.content.swap-r { animation: swapFromRight 220ms cubic-bezier(.2,.8,.2,1) both; }
+.content.swap-l { animation: swapFromLeft  220ms cubic-bezier(.2,.8,.2,1) both; }
+.content.swap-f { animation: swapFade 160ms ease-out both; }
+
+.preview-image {
+  flex: 0 0 120px;
+  height: 120px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--bg);
+  position: relative;
+}
+.preview-image img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+
+.placeholder {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+  color: var(--text-dim);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--surface) 80%, var(--bg)), var(--bg));
+}
+.placeholder .badge {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  font-size: 15px; font-weight: 700;
+  overflow: hidden;
+}
+.placeholder .badge img { width: 18px; height: 18px; object-fit: contain; }
+.placeholder .ph-text { font-size: calc(10.5px * var(--scale)); }
+
+.preview-info { padding: 7px 2px 0; min-width: 0; flex: 1 1 auto; }
+.preview-title {
+  font-size: calc(11.5px * var(--scale));
+  font-weight: 650;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.preview-memory {
+  margin-top: 2px;
+  font-size: calc(10px * var(--scale));
+  color: var(--text-dim);
+  display: flex; align-items: center; gap: 5px;
+}
+.preview-memory .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); opacity: .85; flex: none; }
+.preview-memory.unavailable .dot { background: var(--text-dim); opacity: .5; }
+
+.menu { display:flex; flex-direction:column; gap:1px; }
+.menu button { width:100%; height:31px; padding:0 10px; border:0; border-radius:7px; background:transparent; color:var(--text); text-align:left; font:inherit; font-size:calc(12px * var(--scale)); cursor:pointer; }
+.menu button:hover { background:color-mix(in srgb, var(--accent) 14%, transparent); }
+.menu button.danger:hover { color:var(--danger); }
+button { transition: background-color .16s ease-in-out, color .16s ease-in-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .panel.entering, .panel.exiting, .content.swap-r, .content.swap-l, .content.swap-f { animation-duration: 1ms; }
+}

@@ -1,0 +1,101 @@
+{
+  "name": "murky",
+  "productName": "Murky",
+  "version": "2.0.0",
+  "description": "Murky",
+  "main": "main.js",
+  "author": "Murky Browser",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "node scripts/brand-electron.js && electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win nsis portable",
+    "pack": "electron-builder --dir",
+    "dist:linux": "electron-builder --linux",
+    "brand": "node scripts/brand-electron.js",
+    "postinstall": "node scripts/brand-electron.js"
+  },
+  "devDependencies": {
+    "electron": "43.4.0",
+    "electron-builder": "26.15.3",
+    "rcedit": "^4.0.1"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "@fugood/whisper.node": "^1.1.1",
+    "electron-updater": "6.8.9",
+    "@browsermt/bergamot-translator": "0.4.9",
+    "franc-min": "^6.2.0"
+  },
+  "build": {
+    "appId": "com.murky.browser",
+    "productName": "Murky",
+    "copyright": "Copyright (c) 2026",
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/@fugood/**/*.node"
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "preload-page.js",
+      "src/**/*",
+      "assets/**/*",
+      "package.json",
+      "update-config.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "legalTrademarks": "Murky",
+      "executableName": "Murky"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Murky"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "build/icon.png",
+      "category": "Network"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "murkybrowser",
+        "repo": "Murky-Browser",
+        "private": false
+      }
+    ]
+  }
+}
