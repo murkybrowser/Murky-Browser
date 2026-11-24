@@ -66,15 +66,15 @@ jobs:
               page += 1
 
           platforms = {
-              "Windows-": "Windows",
-              "Linux-": "Linux",
-              "Android-": "Android"
+              "-Windows": "Windows",
+              "-Linux": "Linux",
+              "-Android": "Android"
           }
 
           for prefix, folder in platforms.items():
               matching = [
                   release for release in releases
-                  if release["tag_name"].startswith(prefix)
+                  if release["tag_name"].endswith(prefix)
                   and release.get("published_at")
               ]
 
