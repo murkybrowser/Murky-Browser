@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Murky Update</title><link rel="stylesheet" href="onboarding.css"><link rel="stylesheet" href="update.css">  <script src="lucide.js"></script>
+</head>
+<body>
+  <div class="onboarding-backdrop"></div>
+  <button class="app-close" id="appClose" aria-label="Close Murky" title="Close Murky">×</button>
+  <main class="onboarding-popup update-popup" role="dialog" aria-modal="true">
+    <div class="brand update-icon" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download-icon lucide-download"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
+    </div>
+    <div class="stage update-stage">
+      <div class="slide update-slide">
+        <h2>Your Murky is Outdated!</h2>
+        <div class="version-line"><span>Current version</span><strong id="currentVersion">—</strong></div>
+        <div class="version-line"><span>New version</span><strong id="newVersion">—</strong></div>
+        <p id="updateStatus">A newer version of Murky is ready.</p>
+      </div>
+    </div>
+    <div class="actions update-actions"><button class="btn primary" id="updateButton">Update</button></div>
+  </main>
+<script src="update.js"></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';">
+<title>Murky Link</title>
+<style>
+  :root {
+    --surface: #10201D;
+    --accent: #E3A857;
+    --text: #E4EDE9;
+    --font: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; user-select: none; -webkit-user-select: none; pointer-events: none; }
+  #wrap { position: absolute; left: 8px; right: 8px; bottom: 8px; display: flex; justify-content: flex-start; }
+  #tip {
+    max-width: 100%;
+    padding: 5px 11px 6px;
+    border-radius: 8px;
+    font: 12px/1.35 var(--font);
+    color: var(--text);
+    background: color-mix(in srgb, var(--surface) 96%, black);
+    border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
+    box-shadow: 0 4px 14px rgba(0,0,0,.26), 0 1px 4px rgba(0,0,0,.16);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 170ms ease, transform 170ms cubic-bezier(.2,.8,.2,1);
+    will-change: opacity, transform;
+  }
+  #tip.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+  <div id="wrap"><div id="tip"></div></div>
+  <script src="link-tip.js"></script>
+</body>
+</html>
